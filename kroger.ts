@@ -1,11 +1,12 @@
 'use strict';
 
 import { Browser, launch, Page } from 'puppeteer';
-import { url } from 'inspector';
 import randomUserAgent from './useragents';
-import { timingSafeEqual } from 'crypto';
+import * as querystring from 'querystring';
 import IReceipt, { IReceiptItem } from './models/IReceipt';
-import { resolve } from 'path';
+import { start } from 'repl';
+import ISearch from './models/ISearch';
+import ISearchDetails, { ISearchDetailsProduct } from './models/ISearchDetails';
 
 export default class Kroger {
     endpoint: string = "https://www.kroger.com/";
@@ -102,14 +103,21 @@ export default class Kroger {
         await this.page.waitFor(milliseconds + Math.random() * randomModifier);
     }
 
-    async httpRequest(type: string, url: string, data?) {
-        var expression = function(type, url, data) {
+    async httpRequest(type: string, url: string, data?, additionalHeaders: {[headerName: string]: string} = null) {
+        var expression = function(type, url, data, additionalHeaders) {
             return new Promise((resolve, reject) => {
                 var dataStr = JSON.stringify(data);
                 var xhr = new XMLHttpRequest();
                 xhr.open(type, url);
                 if(dataStr !== "") {
                     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+
+                    if(additionalHeaders !== null) {
+                        for(var headerName in additionalHeaders) {
+                            var value = additionalHeaders[headerName];
+                            xhr.setRequestHeader(headerName, value);
+                        }
+                    }
                 }
                 xhr.onload = function () {
                     if (this.status >= 200 && this.status < 300) {
@@ -121,7 +129,7 @@ export default class Kroger {
                         });
                     }
                 };
-                xhr.onerror = function () {
+                xhr.onerror = function (ev) {
                     reject({
                         status: this.status,
                         statusText: xhr.statusText
@@ -135,14 +143,21 @@ export default class Kroger {
             });
         };
 
-        return await this.page.evaluate(expression, type, url, data);
+        return await this.page.evaluate(expression, type, url, data, additionalHeaders);
     }
 
-    async httpPost(url: string, data) {        
-        return await this.httpRequest("POST", url, data);
-    };
+    async httpPost(url: string, data, additionalHeaders?: {[headerName: string]: string}) {
+        console.log("POST: " + url);
+        return await this.httpRequest("POST", url, data, additionalHeaders);
+    }
+
+    async httpPostWithUrlData(url: string, data) {
+        console.log("POST: " + url + querystring.stringify(data));
+        return await this.httpRequest("POST", url + querystring.stringify(data));
+    }
 
     async httpGet(url: string) {
+        console.log("GET: " + url);
         return await this.httpRequest("GET", url);
     }
 
@@ -207,12 +222,74 @@ export default class Kroger {
         };
 
         var resultString = await this.httpPost(this.endpoint + "mypurchases/api/v1/receipt/detail", data);
-        console.log(resultString);
 
         var resultJson: any;
         try {
             resultJson = JSON.parse(resultString);
-            console.log(resultJson);
+        } catch (error) {
+            return null;
+        }
+
+        if (resultJson === null || resultJson["error"] !== undefined) {
+            return null;
+        }
+
+        return resultJson;
+    }
+
+    async searchRaw(query: string, startIndex: number = 0, count: number = 24): Promise<ISearch> {
+        var data = {
+            start: startIndex,
+            count: count,
+            query: query,
+            tab: 0,
+            monet: true
+        };
+        var resultString = await this.httpPostWithUrlData(this.endpoint + "search/api/searchAll?", data);
+
+        var resultJson: any;
+        try {
+            resultJson = JSON.parse(resultString);
+        } catch (error) {
+            return null;
+        }
+
+        if (resultJson === null || resultJson["error"] !== undefined) {
+            return null;
+        }
+
+        return resultJson;
+    }
+
+    async search(query: string, startIndex: number = 0, count: number = 24): Promise<ISearchDetailsProduct[]> {
+        var searchResults = await this.searchRaw(query, startIndex, count);
+
+        console.log("Retrieved search results");
+
+        var upcs = searchResults.upcs;
+        var products = (await this.productDetails(upcs, "00664", "701")).products;
+
+        console.log("Retrived item details");
+
+        return products;
+    }
+
+    async productDetails(upcs: string[], storeId: string, divisionId: string): Promise<ISearchDetails> {
+        var data = {
+            upcs: upcs,
+            filterBadProducts: true
+        };
+
+        var headers = {
+            "store-id": storeId,
+            "division-id": divisionId
+        }
+
+        var resultString = await this.httpPost(this.endpoint + "products/api/products/details", data, headers);
+
+        var resultJson: any;
+        try {
+            resultJson = JSON.parse(resultString);
         } catch (error) {
             return null;
         }
