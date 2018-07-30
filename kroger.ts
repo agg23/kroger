@@ -261,13 +261,13 @@ export default class Kroger {
         return resultJson;
     }
 
-    async search(query: string, startIndex: number = 0, count: number = 24): Promise<ISearchDetailsProduct[]> {
+    async search(query: string, storeId: string, divisionId: string, startIndex: number = 0, count: number = 24): Promise<ISearchDetailsProduct[]> {
         var searchResults = await this.searchRaw(query, startIndex, count);
 
         console.log("Retrieved search results");
 
         var upcs = searchResults.upcs;
-        var products = (await this.productDetails(upcs, "00664", "701")).products;
+        var products = (await this.productDetails(upcs, storeId, divisionId)).products;
 
         console.log("Retrived item details");
 
