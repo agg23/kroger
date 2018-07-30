@@ -1,0 +1,19 @@
+{
+  "name": "kroger",
+  "version": "1.0.0",
+  "description": "Module for accessing Kroger API",
+  "main": "index.ts",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "puppeteer": "^1.6.1"
+  },
+  "devDependencies": {
+    "@types/puppeteer": "^1.5.1",
+    "typescript": "^2.9.2"
+  },
+  "scripts": {
+    "dev": "tsc && node dist/index.js"
+  },
+  "author": "Adam Gastineau",
+  "license": "ISC"
+}
