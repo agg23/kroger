@@ -1,7 +1,11 @@
 {
   "name": "kroger",
   "version": "1.0.0",
-  "description": "Module for accessing Kroger API",
+  "description": "Node module for accessing the Kroger API",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agg23/kroger"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.js",
   "dependencies": {
