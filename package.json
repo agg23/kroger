@@ -2,7 +2,8 @@
   "name": "kroger",
   "version": "1.0.0",
   "description": "Module for accessing Kroger API",
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.js",
   "dependencies": {
     "axios": "^0.18.0",
     "puppeteer": "^1.6.1"
@@ -15,5 +16,5 @@
     "dev": "tsc && node dist/index.js"
   },
   "author": "Adam Gastineau",
-  "license": "ISC"
+  "license": "MIT"
 }
